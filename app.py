@@ -1,15 +1,14 @@
+"""
+"""
 import requests
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 import os
 from typing import Optional
 from urllib.parse import urlparse
 
-# ============================================================================
-# CONFIGURATION & CONSTANTS
-# ============================================================================
 KEY = bytes([89, 103, 38, 116, 99, 37, 68, 69, 117, 104, 54, 37, 90, 99, 94, 56])
 IV = bytes([54, 111, 121, 90, 68, 114, 50, 50, 69, 51, 121, 99, 104, 106, 77, 37])
 FREEFIRE_VERSION = "OB52"
