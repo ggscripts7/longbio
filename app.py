@@ -1,12 +1,15 @@
 import requests
 import json
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 import os
 from typing import Optional
 from urllib.parse import urlparse
 
+# ============================================================================
+# CONFIGURATION & CONSTANTS
+# ============================================================================
 KEY = bytes([89, 103, 38, 116, 99, 37, 68, 69, 117, 104, 54, 37, 90, 99, 94, 56])
 IV = bytes([54, 111, 121, 90, 68, 114, 50, 50, 69, 51, 121, 99, 104, 106, 77, 37])
 FREEFIRE_VERSION = "OB52"
@@ -17,8 +20,6 @@ REGION_TO_BASE_URL = {
     'US': "https://client.us.freefiremobile.com",
     'SAC': "https://client.us.freefiremobile.com",
     'NA': "https://client.us.freefiremobile.com",
-    'PK': "https://client.ind.freefiremobile.com", 
-    'BD': "https://client.ind.freefiremobile.com",
 }
 ENDPOINT_PATH = "/UpdateSocialBasicInfo"
 DEFAULT_BASE_URL = "https://clientbp.ggblueshark.com"
@@ -33,6 +34,9 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
 
+# ============================================================================
+# PROTOBUF DESCRIPTOR
+# ============================================================================
 try:
     _sym_db = _symbol_database.Default()
     DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\ndata.proto\"\xbb\x01\n\x04\x44\x61ta\x12\x0f\n\x07\x66ield_2\x18\x02 \x01(\x05\x12\x1e\n\x07\x66ield_5\x18\x05 \x01(\x0b\x32\r.EmptyMessage\x12\x1e\n\x07\x66ield_6\x18\x06 \x01(\x0b\x32\r.EmptyMessage\x12\x0f\n\x07\x66ield_8\x18\x08 \x01(\t\x12\x0f\n\x07\x66ield_9\x18\t \x01(\x05\x12\x1f\n\x08\x66ield_11\x18\x0b \x01(\x0b\x32\r.EmptyMessage\x12\x1f\n\x08\x66ield_12\x18\x0c \x01(\x0b\x32\r.EmptyMessage\"\x0e\n\x0c\x45mptyMessageb\x06proto3')
@@ -51,44 +55,6 @@ try:
     EmptyMessage = _sym_db.GetSymbol('EmptyMessage')
 except Exception as e:
     print(f"Error initializing Protobuf: {e}")
-
-# ============================================================================
-# JWT CONVERSION HELPER
-# ============================================================================
-def get_jwt_from_access_token(access_token: str) -> dict:
-    protocols = ["https://", "http://"]
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Upgrade-Insecure-Requests": "1",
-        "Connection": "keep-alive"
-    }
-    
-    last_error = ""
-    for protocol in protocols:
-        external_api_url = f"{protocol}api.byteforcehq.online/access-jwt?access_token={access_token}"
-        try:
-            response = requests.get(external_api_url, headers=headers, timeout=10)
-            if response.status_code == 200:
-                try:
-                    return response.json()
-                except Exception:
-                    import re
-                    match = re.search(r'\{.*\}', response.text)
-                    if match:
-                        return json.loads(match.group(0))
-            
-            last_error = f"External API error ({protocol.replace('://', '')}): {response.status_code}"
-            if response.status_code == 401:
-                last_error += " (Token might be invalid)"
-                
-        except Exception as e:
-            last_error = f"External API connection failed ({protocol.replace('://', '')}): {str(e)}"
-            continue
-            
-    return {"success": False, "message": last_error}
 
 # ============================================================================
 # UPDATE BIO REQUEST
@@ -113,14 +79,14 @@ def update_bio_request(url: str, token: str, bio_text: str) -> dict:
         encrypted_data = cipher.encrypt(padded_data)
 
         payload_data = encrypted_data
-  
+ 
         headers = {
             "Expect": "100-continue",
             "Authorization": f"Bearer {token}",
             "X-Unity-Version": "2018.4.11f1",
             "X-GA": "v1 1",
             "ReleaseVersion": FREEFIRE_VERSION,
-            "Content-Type": "application/x-protobuf",
+            "Content-Type": "application/x-www-form-urlencoded",
             "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 11; SM-A305F Build/RP1A.200720.012)",
             "Connection": "Keep-Alive",
             "Accept-Encoding": "gzip"
@@ -128,6 +94,10 @@ def update_bio_request(url: str, token: str, bio_text: str) -> dict:
 
         res_bio = requests.post(url, headers=headers, data=payload_data)
 
+        """
+/*
+
+"""
         response_data = {
             "api_url": api_hostname,
             "bio_submitted": truncated_bio,
@@ -145,7 +115,9 @@ def update_bio_request(url: str, token: str, bio_text: str) -> dict:
             "error_message": f"Internal error: {str(e)}"
         }
 
-app = Flask(__name__)
+template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
 @app.route('/', methods=['GET'])
 def index():
@@ -157,38 +129,26 @@ def index():
 
 @app.route('/updatebio', methods=['GET'])
 def update_bio_endpoint():
-    # Renamed 'token' parameter to 'jwt' as requested
-    jwt_val = request.args.get('jwt')
+    token = request.args.get('token')
     bio_text = request.args.get('bio')
     region = request.args.get('region')
 
-    if not jwt_val or not bio_text:
+    if not token or not bio_text:
         return jsonify({
             "success": False,
-            "message": "Both 'jwt' and 'bio' query parameters are mandatory.",
-            "example_url": "/updatebio?jwt=YOUR_TOKEN&bio=YOUR_NEW_BIO_TEXT&region=BD"
+            "message": "Both 'token' and 'bio' query parameters are mandatory.",
+            "example_url": "/updatebio?token=YOUR_JWT_TOKEN&bio=YOUR_NEW_BIO_TEXT&region=PK"
         }), 400
 
-    # Automatic JWT conversion if input is an access token (hex)
-    is_access_token = not jwt_val.startswith("eyJ") and len(jwt_val) > 20
-    if is_access_token:
-        jwt_result = get_jwt_from_access_token(jwt_val)
-        if jwt_result.get("success"):
-            jwt_val = jwt_result.get("jwt")
-            # Automatically use the region from the JWT if user didn't specify one
-            if not region:
-                region = jwt_result.get("region")
-        else:
-            return jsonify({
-                "success": False,
-                "message": "Failed to convert access token to JWT.",
-                "error": jwt_result.get("message")
-            }), 401
-
     full_url = get_full_url(region)
-    result = update_bio_request(full_url, jwt_val, bio_text)
+
+    result = update_bio_request(full_url, token, bio_text)
 
     return jsonify(result), result.get("status_code", 500)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=os.environ.get('PORT', 5500))
+    """
+/*
+
+"""
