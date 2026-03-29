@@ -20,6 +20,9 @@ REGION_TO_BASE_URL = {
     'US': "https://client.us.freefiremobile.com",
     'SAC': "https://client.us.freefiremobile.com",
     'NA': "https://client.us.freefiremobile.com",
+    'PK': "https://client.pk.freefiremobile.com",
+    'BD': "https://client.bd.freefiremobile.com",
+    'SG': "https://client.sg.freefiremobile.com",
 }
 ENDPOINT_PATH = "/UpdateSocialBasicInfo"
 DEFAULT_BASE_URL = "https://clientbp.ggblueshark.com"
@@ -82,7 +85,7 @@ def update_bio_request(url: str, token: str, bio_text: str) -> dict:
  
         headers = {
             "Expect": "100-continue",
-            "Authorization": f"Bearer {token}",
+            "Authorization": token,
             "X-Unity-Version": "2018.4.11f1",
             "X-GA": "v1 1",
             "ReleaseVersion": FREEFIRE_VERSION,
@@ -140,6 +143,9 @@ def update_bio_endpoint():
     full_url = get_full_url(region)
 
     result = update_bio_request(full_url, token, bio_text)
+
+    if result.get("status_code") == 401:
+        result["note"] = "Error 401: Unauthorized. Please check if your token is a valid JWT (starts with 'eyJ...') or try the correct region."
 
     return jsonify(result), result.get("status_code", 500)
 
