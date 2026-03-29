@@ -1,4 +1,5 @@
 """
+
 """
 import requests
 import json
@@ -120,11 +121,7 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
 @app.route('/', methods=['GET'])
 def index():
-    return jsonify({
-        "message": "Nicchen Long Bio API is running",
-        "status": "online",
-        "usage": "/updatebio?jwt={jwt}&bio={bio}&region={region}"
-    })
+    return render_template('index.html')
 
 @app.route('/updatebio', methods=['GET'])
 def update_bio_endpoint():
@@ -136,7 +133,7 @@ def update_bio_endpoint():
         return jsonify({
             "success": False,
             "message": "Both 'token' and 'bio' query parameters are mandatory.",
-            "example_url": "/updatebio?token=YOUR_JWT_TOKEN&bio=YOUR_NEW_BIO_TEXT&region=PK"
+            "example": "/updatebio?token=YOUR_JWT_TOKEN&bio=YOUR_BIO&region=BD"
         }), 400
 
     full_url = get_full_url(region)
@@ -149,5 +146,5 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=os.environ.get('PORT', 5500))
     """
 /*
-
+ 
 """
