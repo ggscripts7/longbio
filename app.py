@@ -20,9 +20,8 @@ REGION_TO_BASE_URL = {
     'US': "https://client.us.freefiremobile.com",
     'SAC': "https://client.us.freefiremobile.com",
     'NA': "https://client.us.freefiremobile.com",
-    'PK': "https://client.pk.freefiremobile.com",
-    'BD': "https://client.bd.freefiremobile.com",
-    'SG': "https://client.sg.freefiremobile.com",
+    'PK': "https://client.ind.freefiremobile.com", # PK usually uses IND server
+    'BD': "https://client.ind.freefiremobile.com", # BD usually uses IND server
 }
 ENDPOINT_PATH = "/UpdateSocialBasicInfo"
 DEFAULT_BASE_URL = "https://clientbp.ggblueshark.com"
